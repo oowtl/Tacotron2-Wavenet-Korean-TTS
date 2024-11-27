@@ -22,15 +22,15 @@ from utils.audio import save_wav, inv_spectrogram
 from text import sequence_to_text, text_to_sequence
 from datasets.datafeeder_tacotron2 import DataFeederTacotron2
 import warnings
+
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 log = infolog.log
 
 
-
 def get_git_commit():
-    subprocess.check_output(['git', 'diff-index', '--quiet', 'HEAD'])     # Verify client is clean
+    subprocess.check_output(['git', 'diff-index', '--quiet', 'HEAD'])  # Verify client is clean
     commit = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip()[:10]
     log('Git commit: %s' % commit)
     return commit
@@ -39,28 +39,28 @@ def get_git_commit():
 def add_stats(model, model2=None, scope_name='train'):
     with tf.variable_scope(scope_name) as scope:
         summaries = [
-                tf.summary.scalar('loss_mel', model.mel_loss),
-                tf.summary.scalar('loss_linear', model.linear_loss),
-                tf.summary.scalar('loss', model.loss_without_coeff),
+            tf.summary.scalar('loss_mel', model.mel_loss),
+            tf.summary.scalar('loss_linear', model.linear_loss),
+            tf.summary.scalar('loss', model.loss_without_coeff),
         ]
 
         if scope_name == 'train':
             gradient_norms = [tf.norm(grad) for grad in model.gradients if grad is not None]
 
             summaries.extend([
-                    tf.summary.scalar('learning_rate', model.learning_rate),
-                    tf.summary.scalar('max_gradient_norm', tf.reduce_max(gradient_norms)),
+                tf.summary.scalar('learning_rate', model.learning_rate),
+                tf.summary.scalar('max_gradient_norm', tf.reduce_max(gradient_norms)),
             ])
 
     if model2 is not None:
         with tf.variable_scope('gap_test-train') as scope:
             summaries.extend([
-                    tf.summary.scalar('loss_mel',
-                            model.mel_loss - model2.mel_loss),
-                    tf.summary.scalar('loss_linear', 
-                            model.linear_loss - model2.linear_loss),
-                    tf.summary.scalar('loss',
-                            model.loss_without_coeff - model2.loss_without_coeff),
+                tf.summary.scalar('loss_mel',
+                                  model.mel_loss - model2.mel_loss),
+                tf.summary.scalar('loss_linear',
+                                  model.linear_loss - model2.linear_loss),
+                tf.summary.scalar('loss',
+                                  model.loss_without_coeff - model2.loss_without_coeff),
             ])
 
     return tf.summary.merge(summaries)
@@ -72,20 +72,22 @@ def save_and_plot_fn(args, log_dir, step, loss, prefix):
     audio_path = os.path.join(log_dir, '{}-step-{:09d}-audio{:03d}.wav'.format(prefix, step, idx))
     align_path = os.path.join(log_dir, '{}-step-{:09d}-align{:03d}.png'.format(prefix, step, idx))
 
-    waveform = inv_spectrogram(spec.T,hparams)
-    save_wav(waveform, audio_path,hparams.sample_rate)
+    waveform = inv_spectrogram(spec.T, hparams)
+    save_wav(waveform, audio_path, hparams.sample_rate)
 
     info_text = 'step={:d}, loss={:.5f}'.format(step, loss)
     if 'korean_cleaners' in [x.strip() for x in hparams.cleaners.split(',')]:
         log('Training korean : Use jamo')
-        plot.plot_alignment( align, align_path, info=info_text, text=sequence_to_text(seq,skip_eos_and_pad=True, combine_jamo=True), isKorean=True)
+        plot.plot_alignment(align, align_path, info=info_text,
+                            text=sequence_to_text(seq, skip_eos_and_pad=True, combine_jamo=True), isKorean=True)
     else:
         log('Training non-korean : X use jamo')
-        plot.plot_alignment(align, align_path, info=info_text,text=sequence_to_text(seq,skip_eos_and_pad=True, combine_jamo=False), isKorean=False) 
+        plot.plot_alignment(align, align_path, info=info_text,
+                            text=sequence_to_text(seq, skip_eos_and_pad=True, combine_jamo=False), isKorean=False)
 
-def save_and_plot(sequences, spectrograms,alignments, log_dir, step, loss, prefix):
 
-    fn = partial(save_and_plot_fn,log_dir=log_dir, step=step, loss=loss, prefix=prefix)
+def save_and_plot(sequences, spectrograms, alignments, log_dir, step, loss, prefix):
+    fn = partial(save_and_plot_fn, log_dir=log_dir, step=step, loss=loss, prefix=prefix)
     items = list(enumerate(zip(sequences, spectrograms, alignments)))
 
     parallel_run(fn, items, parallel=False)
@@ -103,12 +105,12 @@ def train(log_dir, config):
         raise Exception("[!] Unkown model_type for multi-speaker: {}".format(config.model_type))
 
     commit = get_git_commit() if config.git else 'None'
-    checkpoint_path = os.path.join(log_dir, 'model.ckpt') # 'logdir-tacotron\\moon_2018-08-28_13-06-42\\model.ckpt'
+    checkpoint_path = os.path.join(log_dir, 'model.ckpt')  # 'logdir-tacotron\\moon_2018-08-28_13-06-42\\model.ckpt'
 
-    #log(' [*] git recv-parse HEAD:\n%s' % get_git_revision_hash())  # hccho: 주석 처리
-    log('='*50)
-    #log(' [*] dit diff:\n%s' % get_git_diff())
-    log('='*50)
+    # log(' [*] git recv-parse HEAD:\n%s' % get_git_revision_hash())  # hccho: 주석 처리
+    log('=' * 50)
+    # log(' [*] dit diff:\n%s' % get_git_diff())
+    log('=' * 50)
     log(' [*] Checkpoint path: %s' % checkpoint_path)
     log(' [*] Loading training data from: %s' % data_dirs)
     log(' [*] Using model: %s' % config.model_dir)  # 'logdir-tacotron\\moon_2018-08-28_13-06-42'
@@ -118,8 +120,10 @@ def train(log_dir, config):
     coord = tf.train.Coordinator()
     with tf.variable_scope('datafeeder') as scope:
         # DataFeeder의 6개 placeholder: train_feeder.inputs, train_feeder.input_lengths, train_feeder.loss_coeff, train_feeder.mel_targets, train_feeder.linear_targets, train_feeder.speaker_id
-        train_feeder = DataFeederTacotron2(coord, data_dirs, hparams, config, 32,data_type='train', batch_size=config.batch_size)
-        test_feeder = DataFeederTacotron2(coord, data_dirs, hparams, config, 8, data_type='test', batch_size=config.num_test)
+        train_feeder = DataFeederTacotron2(coord, data_dirs, hparams, config, 32, data_type='train',
+                                           batch_size=config.batch_size)
+        test_feeder = DataFeederTacotron2(coord, data_dirs, hparams, config, 8, data_type='test',
+                                          batch_size=config.num_test)
 
     # Set up model:
 
@@ -127,22 +131,25 @@ def train(log_dir, config):
 
     with tf.variable_scope('model') as scope:
         model = create_model(hparams)
-        model.initialize(inputs=train_feeder.inputs, input_lengths=train_feeder.input_lengths,num_speakers=num_speakers,speaker_id=train_feeder.speaker_id,
-                         mel_targets=train_feeder.mel_targets, linear_targets=train_feeder.linear_targets,is_training=True,
-                         loss_coeff=train_feeder.loss_coeff,stop_token_targets=train_feeder.stop_token_targets)
+        model.initialize(inputs=train_feeder.inputs, input_lengths=train_feeder.input_lengths,
+                         num_speakers=num_speakers, speaker_id=train_feeder.speaker_id,
+                         mel_targets=train_feeder.mel_targets, linear_targets=train_feeder.linear_targets,
+                         is_training=True,
+                         loss_coeff=train_feeder.loss_coeff, stop_token_targets=train_feeder.stop_token_targets)
 
         model.add_loss()
         model.add_optimizer(global_step)
-        train_stats = add_stats(model, scope_name='train') # legacy
+        train_stats = add_stats(model, scope_name='train')  # legacy
 
     with tf.variable_scope('model', reuse=True) as scope:
         test_model = create_model(hparams)
-        test_model.initialize(inputs=test_feeder.inputs, input_lengths=test_feeder.input_lengths,num_speakers=num_speakers,speaker_id=test_feeder.speaker_id,
-                         mel_targets=test_feeder.mel_targets, linear_targets=test_feeder.linear_targets,is_training=False,
-                         loss_coeff=test_feeder.loss_coeff,stop_token_targets=test_feeder.stop_token_targets)
-        
-        test_model.add_loss()
+        test_model.initialize(inputs=test_feeder.inputs, input_lengths=test_feeder.input_lengths,
+                              num_speakers=num_speakers, speaker_id=test_feeder.speaker_id,
+                              mel_targets=test_feeder.mel_targets, linear_targets=test_feeder.linear_targets,
+                              is_training=False,
+                              loss_coeff=test_feeder.loss_coeff, stop_token_targets=test_feeder.stop_token_targets)
 
+        test_model.add_loss()
 
     # Bookkeeping:
     step = 0
@@ -150,11 +157,11 @@ def train(log_dir, config):
     loss_window = ValueWindow(100)
     saver = tf.train.Saver(max_to_keep=None, keep_checkpoint_every_n_hours=2)
 
-    sess_config = tf.ConfigProto(log_device_placement=False,allow_soft_placement=True)
-    sess_config.gpu_options.allow_growth=True
+    sess_config = tf.ConfigProto(log_device_placement=False, allow_soft_placement=True)
+    sess_config.gpu_options.allow_growth = True
 
     # Train!
-    #with tf.Session(config=sess_config) as sess:
+    # with tf.Session(config=sess_config) as sess:
     with tf.Session() as sess:
         try:
             summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
@@ -174,9 +181,9 @@ def train(log_dir, config):
                 sess.run(zero_step_assign)
 
                 start_step = sess.run(global_step)
-                log('='*50)
+                log('=' * 50)
                 log(' [*] Global step is reset to {}'.format(start_step))
-                log('='*50)
+                log('=' * 50)
             else:
                 log('Starting new training run at commit: %s' % commit, slack=True)
 
@@ -192,7 +199,8 @@ def train(log_dir, config):
                 time_window.append(time.time() - start_time)
                 loss_window.append(loss)
 
-                message = 'Step %-7d [%.03f sec/step, loss=%.05f, avg_loss=%.05f]' % (step, time_window.average, loss, loss_window.average)
+                message = 'Step %-7d [%.03f sec/step, loss=%.05f, avg_loss=%.05f]' % (
+                step, time_window.average, loss, loss_window.average)
                 log(message, slack=(step % config.checkpoint_interval == 0))
 
                 if loss > 100 or math.isnan(loss):
@@ -202,8 +210,7 @@ def train(log_dir, config):
                 if step % config.summary_interval == 0:
                     log('Writing summary at step: %d' % step)
 
-
-                    summary_writer.add_summary(sess.run( train_stats), step)
+                    summary_writer.add_summary(sess.run(train_stats), step)
 
                 if step % config.checkpoint_interval == 0:
                     log('Saving checkpoint to: %s-%d' % (checkpoint_path, step))
@@ -214,20 +221,20 @@ def train(log_dir, config):
                     num_test = config.num_test
 
                     fetches = [
-                            model.inputs[:num_test],
-                            model.linear_outputs[:num_test],
-                            model.alignments[:num_test],
-                            test_model.inputs[:num_test],
-                            test_model.linear_outputs[:num_test],
-                            test_model.alignments[:num_test],
+                        model.inputs[:num_test],
+                        model.linear_outputs[:num_test],
+                        model.alignments[:num_test],
+                        test_model.inputs[:num_test],
+                        test_model.linear_outputs[:num_test],
+                        test_model.alignments[:num_test],
                     ]
 
+                    sequences, spectrograms, alignments, test_sequences, test_spectrograms, test_alignments = sess.run(
+                        fetches)
 
-                    sequences, spectrograms, alignments, test_sequences, test_spectrograms, test_alignments =  sess.run(fetches)
-
-
-                    #librosa는 ffmpeg가 있어야 한다.
-                    save_and_plot(sequences[:1], spectrograms[:1], alignments[:1], log_dir, step, loss, "train")  # spectrograms: (num_test,200,1025), alignments: (num_test,encoder_length,decoder_length)
+                    # librosa는 ffmpeg가 있어야 한다.
+                    save_and_plot(sequences[:1], spectrograms[:1], alignments[:1], log_dir, step, loss,
+                                  "train")  # spectrograms: (num_test,200,1025), alignments: (num_test,encoder_length,decoder_length)
                     save_and_plot(test_sequences, test_spectrograms, test_alignments, log_dir, step, loss, "test")
 
         except Exception as e:
@@ -240,29 +247,31 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--log_dir', default='logdir-tacotron2')
-    
-    parser.add_argument('--data_paths', default='D:\\hccho\\Tacotron-Wavenet-Vocoder-hccho\\data\\moon,D:\\hccho\\Tacotron-Wavenet-Vocoder-hccho\\data\\son')
-    #parser.add_argument('--data_paths', default='D:\\hccho\\Tacotron-Wavenet-Vocoder-hccho\\data\\small1,D:\\hccho\\Tacotron-Wavenet-Vocoder-hccho\\data\\small2')
-    
-    
-    #parser.add_argument('--load_path', default=None)   # 아래의 'initialize_path'보다 우선 적용
+
+    # parser.add_argument('--data_paths', default='D:\\hccho\\Tacotron-Wavenet-Vocoder-hccho\\data\\moon')
+    parser.add_argument('--data_paths',
+                        # default='D:\\hccho\\Tacotron-Wavenet-Vocoder-hccho\\data\\moon,D:\\hccho\\Tacotron-Wavenet-Vocoder-hccho\\data\\son')
+                        default='.\\data\\moon,.\\data\\son')
+    # parser.add_argument('--data_paths', default='D:\\hccho\\Tacotron-Wavenet-Vocoder-hccho\\data\\small1,D:\\hccho\\Tacotron-Wavenet-Vocoder-hccho\\data\\small2')
+
+    # parser.add_argument('--load_path', default=None)   # 아래의 'initialize_path'보다 우선 적용
     parser.add_argument('--load_path', default='logdir-tacotron2/moon+son_2019-03-01_10-35-44')
-    
-    
-    parser.add_argument('--initialize_path', default=None)   # ckpt로 부터 model을 restore하지만, global step은 0에서 시작
+
+    parser.add_argument('--initialize_path', default=None)  # ckpt로 부터 model을 restore하지만, global step은 0에서 시작
 
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--num_test_per_speaker', type=int, default=2)
     parser.add_argument('--random_seed', type=int, default=123)
     parser.add_argument('--summary_interval', type=int, default=100)
-    
+
     parser.add_argument('--test_interval', type=int, default=500)  # 500
-    
-    parser.add_argument('--checkpoint_interval', type=int, default=2000) # 2000
+
+    parser.add_argument('--checkpoint_interval', type=int, default=2000)  # 2000
     parser.add_argument('--skip_path_filter', type=str2bool, default=False, help='Use only for debugging')
 
     parser.add_argument('--slack_url', help='Slack webhook URL to get periodic reports.')
-    parser.add_argument('--git', action='store_true', help='If set, verify that the client is clean.')  # The store_true option automatically creates a default value of False.
+    parser.add_argument('--git', action='store_true',
+                        help='If set, verify that the client is clean.')  # The store_true option automatically creates a default value of False.
 
     config = parser.parse_args()
     config.data_paths = config.data_paths.split(",")
@@ -275,7 +284,6 @@ def main():
 
     tf.set_random_seed(config.random_seed)
     print(config.data_paths)
-
 
     if config.load_path is not None and config.initialize_path is not None:
         raise Exception(" [!] Only one of load_path and initialize_path should be set")

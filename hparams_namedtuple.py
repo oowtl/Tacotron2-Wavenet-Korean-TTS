@@ -194,23 +194,18 @@ hparams = get_hparams(
 
 # LWS 사용안함
 hparams_dict = hparams._asdict()
-
+print(hparams_dict)
 hparams_dict['num_freq'] = int(hparams_dict['fft_size'] / 2 + 1)  # 주파수 대역 개수 계산
 hparams_dict['frame_shift_ms'] = hparams_dict['hop_size'] * 1000.0 / hparams_dict['sample_rate']  # 프레임 이동 시간 계산
 hparams_dict['frame_length_ms'] = hparams_dict['win_size'] * 1000.0 / hparams_dict['sample_rate']  # 프레임 길이 계산
 
-# ???
-# hparams = get_hparams(**hparams_dict)
-hparams = hparams_dict
+hparams = get_hparams(**hparams_dict)
+print(hparams)
 
 # 하이퍼파라미터를 문자열로 반환하는 함수 (디버그용)
 def hparams_debug_string():
     # values = hparams.values()  # 하이퍼파라미터 값을 가져옴
+    hp_fields = hparams._fields
 
-    # hparams 를 namedtuple 로 했을 때
-    # hp_fields = hparams._fields
-    # hp = ['  %s: %s' % (name, hparams[idx]) for [idx, name] in enumerate(sorted(hp_fields))]  # 정렬된 문자열 생성
-
-
-    hp = ['  %s: %s' % (key, hparams[key]) for [key, value] in sorted(hparams.keys())]  # 정렬된 문자열 생성
+    hp = ['  %s: %s' % (name, hparams[idx]) for [idx, name] in enumerate(sorted(hp_fields))]  # 정렬된 문자열 생성
     return 'Hyperparameters:\n' + '\n'.join(hp)  # 문자열 반환

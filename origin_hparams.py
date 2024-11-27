@@ -1,21 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# TensorFlow 버전 변경으로 인한 수정
-# # TensorFlow 및 NumPy 라이브러리 임포트
-# import tensorflow.compat.v1 as tf  # TensorFlow는 딥러닝 모델을 정의하고 학습하는 데 사용됩니다.
-# from tensorboard.plugins.hparams import api as hp
-# import numpy as np  # NumPy는 수학 연산 및 배열 처리를 지원합니다.
-
-# collections 및 namedtuple 임포트
-from collections import namedtuple
-
-# 하이퍼 파라미터 설정을 위해 namedtuple을 사용하여 tuple을 생성하는 함수
-def get_hparams(**kwargs):
-    return namedtuple('GenericDict', kwargs.keys())(**kwargs)
+# TensorFlow 및 NumPy 라이브러리 임포트
+import tensorflow as tf  # TensorFlow는 딥러닝 모델을 정의하고 학습하는 데 사용됩니다.
+from tensorboard.plugins.hparmas import api as hp
+import numpy as np  # NumPy는 수학 연산 및 배열 처리를 지원합니다.
 
 # Tacotron-2 하이퍼파라미터 설정
-hparams = get_hparams(
-    name='Tacotron-2',  # 모델 이름
+hparams = tf.contrib.training.HParams(  # TensorFlow 1.x의 HParams 객체를 사용
+    name="Tacotron-2",  # 모델 이름
 
     # Tacotron 관련 하이퍼파라미터
     cleaners='korean_cleaners',  # 텍스트 정리(cleaning) 방식 ('korean_cleaners' 또는 'english_cleaners')
@@ -181,36 +173,22 @@ hparams = get_hparams(
 
     griffin_lim_iters=60,  # Griffin-Lim 알고리즘 반복 횟수
     power=1.5,  # Griffin-Lim 알고리즘에서 사용하는 파워 계수
-
 )
 
-# # LWS(Local Weighted Sum)를 사용할 경우 추가 설정
-# if hparams.use_lws:
-#     hparams.sample_rate = 20480  # 샘플 레이트 재설정
-#     hparams.hop_size = 256  # 프레임 이동 크기
-#     hparams.fft_size = 2048  # FFT 크기
-#     hparams.win_size = None  # 윈도우 크기
-# else:
+# LWS(Local Weighted Sum)를 사용할 경우 추가 설정
+if hparams.use_lws:
+    hparams.sample_rate = 20480  # 샘플 레이트 재설정
+    hparams.hop_size = 256  # 프레임 이동 크기
+    hparams.fft_size = 2048  # FFT 크기
+    hparams.win_size = None  # 윈도우 크기
+else:
+    hparams.num_freq = int(hparams.fft_size / 2 + 1)  # 주파수 대역 개수 계산
+    hparams.frame_shift_ms = hparams.hop_size * 1000.0 / hparams.sample_rate  # 프레임 이동 시간 계산
+    hparams.frame_length_ms = hparams.win_size * 1000.0 / hparams.sample_rate  # 프레임 길이 계산
 
-# LWS 사용안함
-hparams_dict = hparams._asdict()
-
-hparams_dict['num_freq'] = int(hparams_dict['fft_size'] / 2 + 1)  # 주파수 대역 개수 계산
-hparams_dict['frame_shift_ms'] = hparams_dict['hop_size'] * 1000.0 / hparams_dict['sample_rate']  # 프레임 이동 시간 계산
-hparams_dict['frame_length_ms'] = hparams_dict['win_size'] * 1000.0 / hparams_dict['sample_rate']  # 프레임 길이 계산
-
-# ???
-# hparams = get_hparams(**hparams_dict)
-hparams = hparams_dict
 
 # 하이퍼파라미터를 문자열로 반환하는 함수 (디버그용)
 def hparams_debug_string():
-    # values = hparams.values()  # 하이퍼파라미터 값을 가져옴
-
-    # hparams 를 namedtuple 로 했을 때
-    # hp_fields = hparams._fields
-    # hp = ['  %s: %s' % (name, hparams[idx]) for [idx, name] in enumerate(sorted(hp_fields))]  # 정렬된 문자열 생성
-
-
-    hp = ['  %s: %s' % (key, hparams[key]) for [key, value] in sorted(hparams.keys())]  # 정렬된 문자열 생성
+    values = hparams.values()  # 하이퍼파라미터 값을 가져옴
+    hp = ['  %s: %s' % (name, values[name]) for name in sorted(values)]  # 정렬된 문자열 생성
     return 'Hyperparameters:\n' + '\n'.join(hp)  # 문자열 반환
